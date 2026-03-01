@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farm Calculator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #111;
+    color: #ccc;
+    font-family: sans-serif;
+    font-size: 14px;
+    padding: 20px;
+  }
+
+  h1 {
+    font-size: 1.3rem;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+
+  /* top bar */
+  .topbar {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    align-items: flex-end;
+  }
+
+  .field label {
+    display: block;
+    font-size: 0.72rem;
+    color: #777;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  select {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: #ccc;
+    padding: 5px 8px;
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+
+  /* summary cards */
+  .summary {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    padding: 10px 14px;
+    min-width: 140px;
+  }
+
+  .card .label { font-size: 0.68rem; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .card .value { font-size: 1.3rem; color: #f0cc7a; }
+  .card .sub   { font-size: 0.7rem; color: #444; margin-top: 2px; }
+
+  /* table */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+  }
+
+  thead th {
+    padding: 7px 10px;
+    text-align: left;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #555;
+    border-bottom: 1px solid #222;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #1e1e1e;
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: #161616; }
+  tbody tr.has-farms { background: #161610; }
+
+  td {
+    padding: 7px 10px;
+    vertical-align: middle;
+  }
+
+  .farm-name { color: #ddd; font-size: 0.9rem; }
+  .farm-item { font-size: 0.7rem; color: #444; }
+
+  .tier-common    { color: #8ab4a0; }
+  .tier-uncommon  { color: #6cb8d4; }
+  .tier-rare      { color: #a07cd4; }
+  .tier-epic      { color: #d46cb4; }
+  .tier-legendary { color: #e8a84c; }
+
+  /* rarity pool controls */
+  .pools {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .pool {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .pool-key {
+    font-size: 0.68rem;
+    font-weight: bold;
+    width: 14px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .pool-key.N { color: #555; }
+  .pool-key.G { color: #c9a84c; }
+  .pool-key.D { color: #88ccff; }
+  .pool-key.R { color: #ff7777; }
+
+  .pool-count {
+    width: 26px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #444;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 3px;
+    padding: 2px 0;
+  }
+  .pool-count.active { color: #eee; border-color: #3a3a3a; }
+
+  .btn {
+    width: 20px; height: 20px;
+    background: #1e1e1e;
+    border: 1px solid #2a2a2a;
+    border-radius: 3px;
+    color: #666;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: background 0.1s, color 0.1s;
+  }
+  .btn:hover { background: #2a2a2a; color: #fff; }
+  .btn:disabled { opacity: 0.2; cursor: default; }
+
+  .gph { color: #c9a84c; text-align: right; font-size: 0.85rem; white-space: nowrap; }
+  .roi { text-align: right; font-size: 0.82rem; white-space: nowrap; }
+  .roi.good   { color: #6bbf8a; }
+  .roi.medium { color: #e8a84c; }
+  .roi.slow   { color: #555; }
+
+  .total-qty { font-size: 0.78rem; color: #666; margin-left: 2px; }
+
+  /* territory section */
+  .section-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #555;
+    margin: 22px 0 8px;
+  }
+
+  .territory-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .territory-item {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 5px;
+    padding: 7px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.83rem;
+  }
+  .territory-item.active { border-color: #5a4520; background: #161410; }
+  .t-name  { color: #bbb; }
+  .t-bonus { font-size: 0.68rem; color: #444; margin-top: 2px; }
+  .territory-item.active .t-bonus { color: #7a6330; }
+  .t-controls { display: flex; align-items: center; gap: 4px; }
+  .t-count { width: 18px; text-align: center; color: #f0cc7a; font-size: 0.88rem; }
+</style>
+</head>
+<body>
+
+<h1>Farm Calculator</h1>
+
+<div class="topbar">
+  <div class="field">
+    <label>Weather</label>
+    <select id="weatherSelect">
+      <option value="none">None</option>
+      <option value="harvest">Harvest Moon — 2× Crop Yield</option>
+      <option value="goldstorm">Gold Storm — +50% Gold</option>
+      <option value="flower">Flower Rain — +50% Crop Yield</option>
+    </select>
+  </div>
+</div>
+
+<div class="summary">
+  <div class="card"><div class="label">Gold / Hour</div><div class="value" id="sGold">0</div><div class="sub">all farms</div></div>
+  <div class="card"><div class="label">Items / Hour</div><div class="value" id="sItems">0</div><div class="sub">all tiers</div></div>
+  <div class="card"><div class="label">Active Farms</div><div class="value" id="sCount">0</div><div class="sub" id="sWeather">no weather</div></div>
+  <div class="card"><div class="label">Best ROI</div><div class="value" id="sROI">-</div><div class="sub" id="sROIName">—</div></div>
+</div>
+
+<div class="section-title">Territories <span style="color:#333;font-weight:normal">(max 6 slots total)</span></div>
+<div class="territory-grid" id="territoryGrid"></div>
+
+<div class="section-title">
+  Farms
+  <span style="color:#444;font-weight:normal;margin-left:8px">
+    <span style="color:#555">N</span>=1×
+    &nbsp;<span style="color:#c9a84c">G</span>=2×
+    &nbsp;<span style="color:#88ccff">D</span>=3×
+    &nbsp;<span style="color:#ff7777">R</span>=4×
+  </span>
+</div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Farm</th>
+        <th>Tier</th>
+        <th>
+          <span style="color:#555">N</span> &nbsp;
+          <span style="color:#c9a84c">G</span> &nbsp;
+          <span style="color:#88ccff">D</span> &nbsp;
+          <span style="color:#ff7777">R</span>
+        </th>
+        <th style="text-align:right">Gold/hr</th>
+        <th style="text-align:right">ROI/ea</th>
+      </tr>
+    </thead>
+    <tbody id="farmBody"></tbody>
+  </table>
+</div>
+
+<script>
+const FARMS = [
+  { name:"Wheat Farm",    cost:150,      rarity:"Common",    item:"Wheat",        price:2    },
+  { name:"Bush Farm",     cost:150,      rarity:"Common",    item:"Berry",        price:4    },
+  { name:"Carrot Farm",   cost:400,      rarity:"Uncommon",  item:"Carrot",       price:5    },
+  { name:"Tomato Farm",   cost:900,      rarity:"Uncommon",  item:"Tomato",       price:8    },
+  { name:"Apple Farm",    cost:2000,     rarity:"Rare",      item:"Apple",        price:10   },
+  { name:"Tree Farm",     cost:4500,     rarity:"Rare",      item:"Wood",         price:18   },
+  { name:"Sheep Farm",    cost:10000,    rarity:"Epic",      item:"Wool",         price:25   },
+  { name:"Flower Farm",   cost:22000,    rarity:"Epic",      item:"Flower",       price:35   },
+  { name:"Copper Mine",   cost:50000,    rarity:"Legendary", item:"Copper",       price:100  },
+  { name:"Silver Mine",   cost:120000,   rarity:"Legendary", item:"Silver",       price:175  },
+  { name:"Gold Mine",     cost:300000,   rarity:"Legendary", item:"Gold",         price:300  },
+  { name:"Diamond Mine",  cost:750000,   rarity:"Legendary", item:"Diamond",      price:500  },
+  { name:"Bakery",        cost:1800000,  rarity:"Legendary", item:"Bread",        price:800  },
+  { name:"Bank",          cost:4500000,  rarity:"Legendary", item:"Coin",         price:1300 },
+  { name:"Smithy",        cost:10000000, rarity:"Legendary", item:"Hammer",       price:2000 },
+  { name:"Market",        cost:25000000, rarity:"Legendary", item:"Diamond Coin", price:null },
+  { name:"Fishing Pond",  cost:60000000, rarity:"Legendary", item:"Fish",         price:null },
+];
+
+const TERRITORIES = [
+  { name:"Bandit Camp",       goldPct:5,  yieldPct:5,  max:6 },
+  { name:"Small Village",     goldPct:10, yieldPct:0,  max:6 },
+  { name:"Fishermen Village", goldPct:7,  yieldPct:8,  max:6 },
+  { name:"City",              goldPct:10, yieldPct:25, max:3 },
+  { name:"Goblin Den",        goldPct:12, yieldPct:0,  max:4 },
+  { name:"Mountain Castle",   goldPct:20, yieldPct:15, max:2 },
+];
+
+const RARITIES = [
+  { key:"N", mult:1 },
+  { key:"G", mult:2 },
+  { key:"D", mult:3 },
+  { key:"R", mult:4 },
+];
+
+const BASE_RATE = 720;
+
+const state = {
+  weather: "none",
+  tQty: Object.fromEntries(TERRITORIES.map((_,i) => [i, 0])),
+  fQty: Object.fromEntries(FARMS.map((_,i) => [i, {N:0, G:0, D:0, R:0}])),
+};
+
+function getMods() {
+  let yieldPct = 0, goldPct = 0;
+  TERRITORIES.forEach((t,i) => {
+    yieldPct += t.yieldPct * (state.tQty[i]||0);
+    goldPct  += t.goldPct  * (state.tQty[i]||0);
+  });
+  if (state.weather === "flower") yieldPct += 50;
+  return {
+    yieldMult: state.weather === "harvest" ? 2 : (1 + yieldPct/100),
+    goldMult:  state.weather === "goldstorm" ? (1+goldPct/100)*1.5 : (1+goldPct/100),
+  };
+}
+
+function farmGph(fi, mods) {
+  const f = FARMS[fi], q = state.fQty[fi];
+  if (!f.price) return 0;
+  return RARITIES.reduce((s,r) => s + BASE_RATE * mods.yieldMult * r.mult * f.price * mods.goldMult * (q[r.key]||0), 0);
+}
+
+function farmIph(fi, mods) {
+  const q = state.fQty[fi];
+  return RARITIES.reduce((s,r) => s + BASE_RATE * mods.yieldMult * r.mult * (q[r.key]||0), 0);
+}
+
+function farmROI(fi, mods) {
+  const f = FARMS[fi], q = state.fQty[fi];
+  if (!f.price) return Infinity;
+  const qty = RARITIES.reduce((s,r) => s+(q[r.key]||0), 0);
+  if (!qty) return Infinity;
+  const gph = farmGph(fi, mods);
+  return gph ? (f.cost * qty) / gph : Infinity;
+}
+
+function fmt(n) {
+  if (!n) return "0";
+  if (n >= 1e9) return (n/1e9).toFixed(2)+"B";
+  if (n >= 1e6) return (n/1e6).toFixed(2)+"M";
+  if (n >= 1e3) return (n/1e3).toFixed(1)+"K";
+  return Math.round(n).toLocaleString();
+}
+
+function fmtROI(h) {
+  if (!isFinite(h)||h<=0) return "∞";
+  if (h<1)  return Math.round(h*60)+"m";
+  if (h<24) return h.toFixed(1)+"h";
+  return (h/24).toFixed(1)+"d";
+}
+
+function totalT() {
+  return Object.values(state.tQty).reduce((s,v)=>s+v,0);
+}
+
+// ── Build territories ─────────────────────────────────────────────────────────
+
+function buildTerritories() {
+  const grid = document.getElementById("territoryGrid");
+  TERRITORIES.forEach((t,i) => {
+    const b = [];
+    if (t.goldPct)  b.push(`+${t.goldPct}% gold`);
+    if (t.yieldPct) b.push(`+${t.yieldPct}% yield`);
+    const div = document.createElement("div");
+    div.className = "territory-item";
+    div.id = `ti-${i}`;
+    div.innerHTML = `
+      <div>
+        <div class="t-name">${t.name} <span style="color:#333;font-size:0.65rem">(max ${t.max})</span></div>
+        <div class="t-bonus">${b.join(" · ")}</div>
+      </div>
+      <div class="t-controls">
+        <button class="btn" id="tm-${i}">−</button>
+        <span class="t-count" id="tc-${i}">0</span>
+        <button class="btn" id="tp-${i}">+</button>
+      </div>
+    `;
+    grid.appendChild(div);
+    document.getElementById(`tm-${i}`).onclick = () => { if (state.tQty[i]>0) { state.tQty[i]--; refreshT(); recalc(); } };
+    document.getElementById(`tp-${i}`).onclick = () => { if (state.tQty[i]<t.max && totalT()<6) { state.tQty[i]++; refreshT(); recalc(); } };
+  });
+}
+
+function refreshT() {
+  const total = totalT();
+  TERRITORIES.forEach((t,i) => {
+    const q = state.tQty[i];
+    document.getElementById(`tc-${i}`).textContent = q;
+    document.getElementById(`ti-${i}`).className = "territory-item" + (q>0?" active":"");
+    document.getElementById(`tm-${i}`).disabled = q<=0;
+    document.getElementById(`tp-${i}`).disabled = q>=t.max || total>=6;
+  });
+}
+
+// ── Build farm rows ───────────────────────────────────────────────────────────
+
+function buildFarms() {
+  const tbody = document.getElementById("farmBody");
+  FARMS.forEach((f,fi) => {
+    const tr = document.createElement("tr");
+    tr.id = `fr-${fi}`;
+
+    const poolsHtml = RARITIES.map(r => `
+      <span class="pool">
+        <span class="pool-key ${r.key}">${r.key}</span>
+        <button class="btn" id="fm-${fi}-${r.key}">−</button>
+        <span class="pool-count" id="fc-${fi}-${r.key}">0</span>
+        <button class="btn" id="fp-${fi}-${r.key}">+</button>
+      </span>
+    `).join("");
+
+    tr.innerHTML = `
+      <td>
+        <div class="farm-name">${f.name}</div>
+        <div class="farm-item">${f.item}</div>
+      </td>
+      <td class="tier-${f.rarity.toLowerCase()}" style="font-size:0.7rem;white-space:nowrap">${f.rarity}</td>
+      <td>
+        <div class="pools">
+          ${poolsHtml}
+          <span class="total-qty" id="ft-${fi}" style="display:none"></span>
+        </div>
+      </td>
+      <td class="gph" id="fg-${fi}">—</td>
+      <td class="roi" id="fr2-${fi}">—</td>
+    `;
+    tbody.appendChild(tr);
+
+    RARITIES.forEach(r => {
+      document.getElementById(`fm-${fi}-${r.key}`).onclick = () => { if (state.fQty[fi][r.key]>0) { state.fQty[fi][r.key]--; refreshFarm(fi); recalc(); } };
+      document.getElementById(`fp-${fi}-${r.key}`).onclick = () => { state.fQty[fi][r.key]++; refreshFarm(fi); recalc(); };
+    });
+  });
+}
+
+function refreshFarm(fi) {
+  const q = state.fQty[fi];
+  RARITIES.forEach(r => {
+    const cnt = q[r.key]||0;
+    const el = document.getElementById(`fc-${fi}-${r.key}`);
+    el.textContent = cnt;
+    el.className = "pool-count" + (cnt>0?" active":"");
+    document.getElementById(`fm-${fi}-${r.key}`).disabled = cnt<=0;
+  });
+  const total = RARITIES.reduce((s,r)=>s+(q[r.key]||0),0);
+  const tEl = document.getElementById(`ft-${fi}`);
+  if (total>0) { tEl.style.display=""; tEl.textContent=`(${total} total)`; }
+  else tEl.style.display="none";
+  document.getElementById(`fr-${fi}`).className = total>0 ? "has-farms" : "";
+}
+
+// ── Recalc ────────────────────────────────────────────────────────────────────
+
+function recalc() {
+  const mods = getMods();
+  let gross=0, items=0, count=0, bestROI=Infinity, bestName="—";
+
+  FARMS.forEach((f,fi) => {
+    const q = state.fQty[fi];
+    const qty = RARITIES.reduce((s,r)=>s+(q[r.key]||0),0);
+    const gph = farmGph(fi, mods);
+    const roi = farmROI(fi, mods);
+
+    document.getElementById(`fg-${fi}`).textContent = f.price ? fmt(gph)+"/hr" : "—";
+    const rEl = document.getElementById(`fr2-${fi}`);
+    if (!f.price) { rEl.textContent="—"; rEl.className="roi"; }
+    else {
+      rEl.textContent = fmtROI(roi);
+      rEl.className = "roi " + (!isFinite(roi)?"slow":roi<1?"good":roi<24?"medium":"slow");
+    }
+
+    if (qty>0) {
+      count += qty;
+      if (f.price) {
+        gross += gph;
+        items += farmIph(fi, mods);
+        if (roi<bestROI) { bestROI=roi; bestName=f.name; }
+      }
+    }
+  });
+
+  document.getElementById("sGold").textContent  = fmt(gross)+"/hr";
+  document.getElementById("sItems").textContent = fmt(items)+"/hr";
+  document.getElementById("sCount").textContent = count;
+  document.getElementById("sROI").textContent   = bestROI<Infinity ? fmtROI(bestROI) : "—";
+  document.getElementById("sROIName").textContent = bestName;
+  const wl = {none:"no weather",harvest:"Harvest Moon",goldstorm:"Gold Storm",flower:"Flower Rain"};
+  document.getElementById("sWeather").textContent = wl[state.weather];
+}
+
+document.getElementById("weatherSelect").addEventListener("change", e => { state.weather=e.target.value; recalc(); });
+
+buildTerritories();
+buildFarms();
+recalc();
+</script>
+</body>
+</html>
